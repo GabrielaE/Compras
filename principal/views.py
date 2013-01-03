@@ -1,0 +1,45 @@
+# Create your views here.
+from django.contrib.auth.models import User
+from principal.models import Cliente, Canasta, Item, ItemCanasta, Categoria, CategoriaProducto
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render_to_response, get_object_or_404
+from django.template import RequestContext
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.decorators import login_required
+
+
+def inicio(request):
+    return render_to_response('inicio.html')
+
+def ingresar(request):
+    cliente=Cliente.objects.all
+    if not request.user.is_anonymous():
+        return HttpResponseRedirect('/privado')
+    if request.method == 'POST':
+        formulario = AuthenticationForm(request.POST)
+        if formulario.is_valid:
+            usuario = request.POST['username']
+            clave = request.POST['password']
+            acceso = authenticate(username=usuario, password=clave)
+            if acceso is not None:
+                if acceso.is_active:
+                    login(request, acceso)
+                    return HttpResponseRedirect('/privado')
+                else:
+                    return render_to_response('noactivo.html', context_instance=RequestContext(request))
+            else:
+                return render_to_response('nousuario.html', context_instance=RequestContext(request))
+    else:
+        formulario = AuthenticationForm()
+    return render_to_response('inicio.html',{'formulario':formulario, 'cliente':cliente}, context_instance=RequestContext(request))
+
+@login_required(login_url='/')
+def privado(request):
+    usuario = request.user
+    return render_to_response('privado.html', {'usuario':usuario}, context_instance=RequestContext(request))
+
+@login_required(login_url='/')
+def cerrar(request):
+    logout(request)
+    return HttpResponseRedirect('/')
